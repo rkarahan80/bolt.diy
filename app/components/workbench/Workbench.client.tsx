@@ -16,8 +16,9 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
-import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { workbenchStore, type WorkbenchViewType as OriginalWorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
+import ProjectPlanDisplay from './ProjectPlanDisplay'; // Import ProjectPlanDisplay
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
@@ -52,7 +53,11 @@ const sliderOptions: SliderOptions<WorkbenchViewType> = {
     value: 'preview',
     text: 'Preview',
   },
+  // projectPlan will be added dynamically
 };
+
+// Define a new WorkbenchViewType that includes 'projectPlan'
+export type WorkbenchViewType = OriginalWorkbenchViewType | 'projectPlan';
 
 const workbenchVariants = {
   closed: {
@@ -293,13 +298,81 @@ export const Workbench = memo(
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
     const files = useStore(workbenchStore.files);
-    const selectedView = useStore(workbenchStore.currentView);
+    const selectedView = useStore(workbenchStore.currentView) as WorkbenchViewType; // Cast to new type
+    const [projectPlanExists, setProjectPlanExists] = useState(false);
 
     const isSmallViewport = useViewport(1024);
 
     const setSelectedView = (view: WorkbenchViewType) => {
-      workbenchStore.currentView.set(view);
+      workbenchStore.currentView.set(view as OriginalWorkbenchViewType); // Cast back for the store
     };
+
+    useEffect(() => {
+      const checkProjectPlan = async () => {
+        try {
+          const response = await fetch('/project-plan.md');
+          if (response.ok) {
+            setProjectPlanExists(true);
+          } else {
+            setProjectPlanExists(false);
+          }
+        } catch (error) {
+          console.error('Error checking for project-plan.md:', error);
+          setProjectPlanExists(false);
+        }
+      };
+      checkProjectPlan();
+    }, []);
+
+    // Dynamically create sliderOptions based on projectPlanExists
+    const currentSliderOptions = useMemo((): SliderOptions<WorkbenchViewType> => {
+      const options: SliderOptions<WorkbenchViewType> = {
+        left: { value: 'code', text: 'Code' },
+        // Diff is typically in the middle or needs specific placement logic
+      };
+      if (projectPlanExists) {
+        options.projectPlan = { value: 'projectPlan', text: 'Project Plan' };
+      }
+      // Add diff and preview, ensuring logical order
+      options.diff = { value: 'diff', text: 'Diff' };
+      options.right = { value: 'preview', text: 'Preview' };
+
+      // Adjusting keys for Slider component if it expects left, middle, right
+      // This part is tricky without knowing Slider's exact props.
+      // For now, let's assume Slider can handle dynamic options or we adjust its usage.
+      // A simpler approach for now might be to always have the slot, but disable it.
+      // Or, the Slider component itself needs to be more flexible.
+
+      // Rebuilding based on typical Slider structure (left, middle, right if fixed)
+      // If Slider is dynamic (takes an array of options), this is simpler.
+      // Assuming Slider might be: { left, middle?, right?, additional? }
+      // For this iteration, let's try to fit it into the existing structure if possible,
+      // or acknowledge this might need Slider modification.
+
+      // Let's try a conditional approach to Slider props if it's more flexible
+      // than just left/middle/right. If not, this part of the plan needs rethinking.
+      // Given the original structure, let's rebuild it carefully.
+      const baseOptions: SliderOptions<OriginalWorkbenchViewType> = {
+        left: { value: 'code', text: 'Code' },
+        middle: { value: 'diff', text: 'Diff' },
+        right: { value: 'preview', text: 'Preview' },
+      };
+      if (projectPlanExists) {
+        // This is where it gets tricky with the fixed left/middle/right structure.
+        // A common pattern is to add it as a new tab.
+        // Let's assume `Slider` can take a dynamic array of options
+        // or we will adjust the rendering of `Slider` later.
+        // For now, returning a structure that includes 'projectPlan'.
+        return {
+          left: { value: 'code', text: 'Code' },
+          ...(projectPlanExists && { projectPlan: { value: 'projectPlan', text: 'Project Plan' } }),
+          middle: { value: 'diff', text: 'Diff' }, // This might become 'right' if projectPlan is 'middle'
+          right: { value: 'preview', text: 'Preview' }, // And this might need adjustment
+        } as SliderOptions<WorkbenchViewType>; // Cast needed due to conditional property
+      }
+      return baseOptions as SliderOptions<WorkbenchViewType>; // Cast to allow OriginalWorkbenchViewType
+    }, [projectPlanExists]);
+
 
     useEffect(() => {
       if (hasPreview) {
@@ -382,7 +455,7 @@ export const Workbench = memo(
             <div className="absolute inset-0 px-2 lg:px-6">
               <div className="h-full flex flex-col bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor shadow-sm rounded-lg overflow-hidden">
                 <div className="flex items-center px-3 py-2 border-b border-bolt-elements-borderColor gap-1">
-                  <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
+                  <Slider selected={selectedView} options={currentSliderOptions} setSelected={setSelectedView} />
                   <div className="ml-auto" />
                   {selectedView === 'code' && (
                     <div className="flex overflow-y-auto">
@@ -466,7 +539,12 @@ export const Workbench = memo(
                   />
                 </div>
                 <div className="relative flex-1 overflow-hidden">
-                  <View initial={{ x: '0%' }} animate={{ x: selectedView === 'code' ? '0%' : '-100%' }}>
+                  <View
+                    initial={{ x: '0%' }}
+                    animate={{
+                      x: selectedView === 'code' ? '0%' : selectedView === 'projectPlan' ? '-100%' : selectedView === 'diff' ? '-100%' : '-100%',
+                    }}
+                  >
                     <EditorPanel
                       editorDocument={currentDocument}
                       isStreaming={isStreaming}
@@ -481,13 +559,30 @@ export const Workbench = memo(
                       onFileReset={onFileReset}
                     />
                   </View>
+                  {projectPlanExists && (
+                    <View
+                      initial={{ x: '100%' }}
+                      animate={{
+                        x: selectedView === 'projectPlan' ? '0%' : selectedView === 'code' ? '100%' : selectedView === 'diff' ? '-100%' : '-100%',
+                      }}
+                    >
+                      <ProjectPlanDisplay />
+                    </View>
+                  )}
                   <View
                     initial={{ x: '100%' }}
-                    animate={{ x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : '-100%' }}
+                    animate={{
+                      x: selectedView === 'diff' ? '0%' : selectedView === 'code' ? '100%' : selectedView === 'projectPlan' ? '100%' : '-100%',
+                    }}
                   >
                     <DiffView fileHistory={fileHistory} setFileHistory={setFileHistory} actionRunner={actionRunner} />
                   </View>
-                  <View initial={{ x: '100%' }} animate={{ x: selectedView === 'preview' ? '0%' : '100%' }}>
+                  <View
+                    initial={{ x: '100%' }}
+                    animate={{
+                      x: selectedView === 'preview' ? '0%' : selectedView === 'code' ? '100%' : selectedView === 'projectPlan' ? '100%' : '100%',
+                    }}
+                  >
                     <Preview />
                   </View>
                 </div>
