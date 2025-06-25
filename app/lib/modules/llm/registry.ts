@@ -16,6 +16,9 @@ import XAIProvider from './providers/xai';
 import HyperbolicProvider from './providers/hyperbolic';
 import AmazonBedrockProvider from './providers/amazon-bedrock';
 import GithubProvider from './providers/github';
+import AzureOpenAIProvider from './providers/azure-openai';
+import VertexAIProvider from './providers/vertex-ai';
+import GraniteProvider from './providers/granite';
 
 export {
   AnthropicProvider,
@@ -36,4 +39,7 @@ export {
   LMStudioProvider,
   AmazonBedrockProvider,
   GithubProvider,
+  AzureOpenAIProvider,
+  VertexAIProvider,
+  GraniteProvider,
 };
