@@ -2,9 +2,11 @@ import type { IconType } from 'react-icons';
 
 export type ProviderName =
   | 'AmazonBedrock'
+  | 'AzureOpenAI'
   | 'Cohere'
   | 'Deepseek'
   | 'Google'
+  | 'Granite'
   | 'Groq'
   | 'HuggingFace'
   | 'Hyperbolic'
@@ -12,6 +14,7 @@ export type ProviderName =
   | 'OpenRouter'
   | 'Perplexity'
   | 'Together'
+  | 'VertexAI'
   | 'XAI';
 
 export type ServiceStatus = {

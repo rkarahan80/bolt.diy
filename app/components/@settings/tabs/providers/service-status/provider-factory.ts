@@ -2,9 +2,11 @@ import type { ProviderName, ProviderConfig, StatusCheckResult } from './types';
 import { BaseProviderChecker } from './base-provider';
 
 import { AmazonBedrockStatusChecker } from './providers/amazon-bedrock';
+import { AzureOpenAIStatusChecker } from './providers/azure-openai';
 import { CohereStatusChecker } from './providers/cohere';
 import { DeepseekStatusChecker } from './providers/deepseek';
 import { GoogleStatusChecker } from './providers/google';
+import { GraniteStatusChecker } from './providers/granite';
 import { GroqStatusChecker } from './providers/groq';
 import { HuggingFaceStatusChecker } from './providers/huggingface';
 import { HyperbolicStatusChecker } from './providers/hyperbolic';
@@ -12,6 +14,7 @@ import { MistralStatusChecker } from './providers/mistral';
 import { OpenRouterStatusChecker } from './providers/openrouter';
 import { PerplexityStatusChecker } from './providers/perplexity';
 import { TogetherStatusChecker } from './providers/together';
+import { VertexAIStatusChecker } from './providers/vertex-ai';
 import { XAIStatusChecker } from './providers/xai';
 
 export class ProviderStatusCheckerFactory {
@@ -21,6 +24,12 @@ export class ProviderStatusCheckerFactory {
       apiUrl: 'https://bedrock.us-east-1.amazonaws.com/models',
       headers: {},
       testModel: 'anthropic.claude-3-sonnet-20240229-v1:0',
+    },
+    AzureOpenAI: {
+      statusUrl: 'https://status.azure.com/en-us/status',
+      apiUrl: 'https://YOUR_RESOURCE_NAME.openai.azure.com/openai/deployments',
+      headers: {},
+      testModel: 'gpt-4',
     },
     Cohere: {
       statusUrl: 'https://status.cohere.com/',
@@ -39,6 +48,12 @@ export class ProviderStatusCheckerFactory {
       apiUrl: 'https://generativelanguage.googleapis.com/v1/models',
       headers: {},
       testModel: 'gemini-pro',
+    },
+    Granite: {
+      statusUrl: 'https://console.granite.io/',
+      apiUrl: 'https://api.granite.io/v1/models',
+      headers: {},
+      testModel: 'granite-8b',
     },
     Groq: {
       statusUrl: 'https://groqstatus.com/',
@@ -82,6 +97,12 @@ export class ProviderStatusCheckerFactory {
       headers: {},
       testModel: 'mistralai/Mixtral-8x7B-Instruct-v0.1',
     },
+    VertexAI: {
+      statusUrl: 'https://status.cloud.google.com/',
+      apiUrl: 'https://us-central1-aiplatform.googleapis.com/v1/models',
+      headers: {},
+      testModel: 'gemini-1.5-pro',
+    },
     XAI: {
       statusUrl: 'https://status.x.ai/',
       apiUrl: 'https://api.x.ai/v1/models',
@@ -100,12 +121,16 @@ export class ProviderStatusCheckerFactory {
     switch (provider) {
       case 'AmazonBedrock':
         return new AmazonBedrockStatusChecker(config);
+      case 'AzureOpenAI':
+        return new AzureOpenAIStatusChecker(config);
       case 'Cohere':
         return new CohereStatusChecker(config);
       case 'Deepseek':
         return new DeepseekStatusChecker(config);
       case 'Google':
         return new GoogleStatusChecker(config);
+      case 'Granite':
+        return new GraniteStatusChecker(config);
       case 'Groq':
         return new GroqStatusChecker(config);
       case 'HuggingFace':
@@ -120,6 +145,8 @@ export class ProviderStatusCheckerFactory {
         return new PerplexityStatusChecker(config);
       case 'Together':
         return new TogetherStatusChecker(config);
+      case 'VertexAI':
+        return new VertexAIStatusChecker(config);
       case 'XAI':
         return new XAIStatusChecker(config);
       default:
